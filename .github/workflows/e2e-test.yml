@@ -5,8 +5,10 @@ run-name: E2E test workflow with test suite branch ${{inputs.testBranch || 'main
   # contains(github.event.pull_request.title, 'Release 9.')
 
 on:
-  pull_request: [main]
-  pull_request_target: [main]
+  pull_request:
+    branches: [main]
+  pull_request_target:
+    branches: [main]
   workflow_dispatch:
     inputs:
       testBranch:
