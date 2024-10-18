@@ -1,9 +1,12 @@
-name: Adyen Magento 2 E2E test workflow
-run-name: E2E tests against Test Repository ${{inputs.testBranch || 'main'}} with test group ${{inputs.testGroup || 'standard'}} and express branch ${{inputs.expressBranch || 'none'}}
+name: E2E test workflow
+run-name: E2E test workflow with test suite branch ${{inputs.testBranch || 'main'}}
+  
+  # and express branch ${{inputs.expressBranch || 'none'}}
+  # contains(github.event.pull_request.title, 'Release 9.')
 
 on:
-  pull_request:
-  pull_request_target:
+  pull_request: [main]
+  pull_request_target: [main]
   workflow_dispatch:
     inputs:
       testBranch:
@@ -46,7 +49,16 @@ jobs:
       ADMIN_PASSWORD: ${{secrets.MAGENTO_ADMIN_PASSWORD}}
       DONATION_ACCOUNT: ${{secrets.DONATION_ACCOUNT}}
       DEPLOY_SAMPLEDATA: 1
+
+      # Workflow runtime variables
+      IS_RELEASE: ${{ contains(github.event.pull_request.title, 'Release 9.') && TRUE || FALSE }}
+      TEST_GROUP: ${{ IS_RELEASE && 'all' || (inputs.testGroup || 'standard') }}
+      TEST_BRANCH: ${{ (IS_RELEASE || !inputs.testBranch) && 'main' || inputs.testBranch }}
+      EXPRESS_BRANCH: ${{ contains(fromJSON('["all", "express-checkout"]'), TEST_GROUP) && (input.expressBranch || 'main') || '' }}
     steps:
+      - name: Information
+        run: echo "E2E testing against test suite branch $TEST_BRANCH using group $TEST_GROUP ${{ EXPRESS_BRANCH && 'with express module branch $EXPRESS_BRANCH' || '' }} "
+
       - uses: actions/checkout@v3
 
       - name: Install Magento
@@ -88,11 +100,11 @@ jobs:
 #        run: docker exec -u www-data magento2-container make dev-module
 
       - name: Install Express module
-        if: ${{contains(fromJSON('["all", "express-checkout"]'), inputs.testGroup)}}
-        run: docker exec -u www-data magento2-container composer require adyen/adyen-magento2-expresscheckout:dev-${{inputs.expressBranch}}
+        if: ${{ EXPRESS_BRANCH }}
+        run: docker exec -u www-data magento2-container composer require adyen/adyen-magento2-expresscheckout:dev-${{ EXPRESS_BRANCH }}
 
       - name: Enable Express module
-        if: ${{contains(fromJSON('["all", "express-checkout"]'), inputs.testGroup)}}
+        if: ${{ EXPRESS_BRANCH }}
         run: docker exec -u www-data magento2-container make enable-express
 
       - name: Switch to production mode
@@ -102,9 +114,9 @@ jobs:
         run: docker exec magento2-container make fs
 
       - name: Run E2E tests
-        run: docker compose -f .github/docker-compose.e2e.yml run --rm playwright /e2e.sh ${{inputs.testGroup || 'standard'}}
+        run: docker compose -f .github/docker-compose.e2e.yml run --rm playwright /e2e.sh ${{ TEST_GROUP }}
         env:
-          INTEGRATION_TESTS_BRANCH: ${{inputs.testBranch || 'develop'}}
+          INTEGRATION_TESTS_BRANCH: ${{ TEST_BRANCH }}
           MAGENTO_ADMIN_USERNAME: ${{secrets.MAGENTO_ADMIN_USERNAME}}
           MAGENTO_ADMIN_PASSWORD: ${{secrets.MAGENTO_ADMIN_PASSWORD}}
           MAGENTO_BASE_URL: ${{secrets.MAGENTO_BASE_URL}}
