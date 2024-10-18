@@ -54,7 +54,7 @@ jobs:
 
       # Workflow runtime variables
       IS_RELEASE: ${{ contains(github.event.pull_request.title, 'Release 9.') && true || false }}
-      TEST_GROUP: ${{ IS_RELEASE && 'all' || (inputs.testGroup || 'standard') }}
+      TEST_GROUP: ${{ env.IS_RELEASE && 'all' || (inputs.testGroup || 'standard') }}
       TEST_BRANCH: ${{ (IS_RELEASE || !inputs.testBranch) && 'main' || inputs.testBranch }}
       EXPRESS_BRANCH: ${{ contains(fromJSON('["all", "express-checkout"]'), TEST_GROUP) && (input.expressBranch || 'main') || '' }}
     steps:
