@@ -58,8 +58,15 @@ jobs:
       TEST_BRANCH: ${{ (IS_RELEASE || !inputs.testBranch) && 'main' || inputs.testBranch }}
       EXPRESS_BRANCH: ${{ contains(fromJSON('["all", "express-checkout"]'), TEST_GROUP) && (input.expressBranch || 'main') || '' }}
     steps:
+      - name: Define variables
+        run: | 
+          echo "IS_RELEASE=${{ contains(github.event.pull_request.title, 'Release 9.') && true || false }}" >> $GITHUB_ENV
+          echo "TEST_GROUP=${{ env.IS_RELEASE && 'all' || (inputs.testGroup || 'standard') }}" >> $GITHUB_ENV
+          echo "TEST_BRANCH=${{ (env.IS_RELEASE || !inputs.testBranch) && 'main' || inputs.testBranch }}" >> $GITHUB_ENV
+          echo "EXPRESS_BRANCH=${{ contains(fromJSON('["all", "express-checkout"]'), env.TEST_GROUP) && (input.expressBranch || 'main') || '' }}" >> $GITHUB_ENV
+
       - name: Information
-        run: echo "E2E testing against test suite branch $TEST_BRANCH using group $TEST_GROUP ${{ EXPRESS_BRANCH && 'with express module branch $EXPRESS_BRANCH' || '' }} "
+        run: echo "E2E testing against test suite branch ${{env.TEST_BRANCH}} using group ${{env.TEST_GROUP}} ${{ env.EXPRESS_BRANCH && 'with express module branch $EXPRESS_BRANCH' || '' }} "
 
       - uses: actions/checkout@v3
 
@@ -102,11 +109,11 @@ jobs:
 #        run: docker exec -u www-data magento2-container make dev-module
 
       - name: Install Express module
-        if: ${{ EXPRESS_BRANCH }}
-        run: docker exec -u www-data magento2-container composer require adyen/adyen-magento2-expresscheckout:dev-${{ EXPRESS_BRANCH }}
+        if: ${{ env.EXPRESS_BRANCH }}
+        run: docker exec -u www-data magento2-container composer require adyen/adyen-magento2-expresscheckout:dev-${{ env.EXPRESS_BRANCH }}
 
       - name: Enable Express module
-        if: ${{ EXPRESS_BRANCH }}
+        if: ${{ env.EXPRESS_BRANCH }}
         run: docker exec -u www-data magento2-container make enable-express
 
       - name: Switch to production mode
@@ -116,9 +123,9 @@ jobs:
         run: docker exec magento2-container make fs
 
       - name: Run E2E tests
-        run: docker compose -f .github/docker-compose.e2e.yml run --rm playwright /e2e.sh ${{ TEST_GROUP }}
+        run: docker compose -f .github/docker-compose.e2e.yml run --rm playwright /e2e.sh ${{ env.TEST_GROUP }}
         env:
-          INTEGRATION_TESTS_BRANCH: ${{ TEST_BRANCH }}
+          INTEGRATION_TESTS_BRANCH: ${{ env.TEST_BRANCH }}
           MAGENTO_ADMIN_USERNAME: ${{secrets.MAGENTO_ADMIN_USERNAME}}
           MAGENTO_ADMIN_PASSWORD: ${{secrets.MAGENTO_ADMIN_PASSWORD}}
           MAGENTO_BASE_URL: ${{secrets.MAGENTO_BASE_URL}}
