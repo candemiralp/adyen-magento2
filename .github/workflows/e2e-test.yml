@@ -50,9 +50,9 @@ jobs:
       DEPLOY_SAMPLEDATA: 1
     steps:
       # Define variables for the test case
-      - run: echo "IS_RELEASE=${{ contains(github.event.pull_request.title, 'Release 9.') && true || false }}" >> $GITHUB_ENV
+      - run: echo "IS_RELEASE=${{ contains(github.event.pull_request.title, 'Release 9.') && 'true' || '' }}" >> $GITHUB_ENV
       - run: echo "TEST_GROUP=${{ env.IS_RELEASE && 'all' || (inputs.testGroup || 'standard') }}" >> $GITHUB_ENV
-      - run: echo "TEST_BRANCH=${{ (env.IS_RELEASE || inputs.testBranch == '')  && 'main' || inputs.testBranch }}" >> $GITHUB_ENV
+      - run: echo "TEST_BRANCH=${{ (env.IS_RELEASE || !inputs.testBranch)  && 'main' || inputs.testBranch }}" >> $GITHUB_ENV
       - run: echo "EXPRESS_BRANCH=${{ contains(fromJSON('["all", "express-checkout"]'), env.TEST_GROUP) && (inputs.expressBranch || 'main') || '' }}" >> $GITHUB_ENV
 
       - name: Information
