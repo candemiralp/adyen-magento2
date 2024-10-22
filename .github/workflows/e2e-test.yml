@@ -54,7 +54,7 @@ jobs:
           echo "IS_RELEASE=${{ contains(github.event.pull_request.title, 'Release 9.') && true || false }}" >> $GITHUB_ENV
           echo "TEST_GROUP=${{ env.IS_RELEASE && 'all' || (inputs.testGroup || 'standard') }}" >> $GITHUB_ENV
           echo "TEST_BRANCH=${{ (env.IS_RELEASE || !inputs.testBranch) && 'main' || inputs.testBranch }}" >> $GITHUB_ENV
-          echo "EXPRESS_BRANCH=${{ contains(fromJSON('["all", "express-checkout"]'), env.TEST_GROUP) && (inputs.expressBranch || 'main') || '' }}" >> $GITHUB_ENV
+          echo "EXPRESS_BRANCH=${{ contains(fromJSON('["all", "express-checkout"]'), env.TEST_GROUP) }}" >> $GITHUB_ENV
 
       - name: Information
         run: echo "E2E testing against test suite branch ${{env.TEST_BRANCH}} using group ${{env.TEST_GROUP}} ${{ env.EXPRESS_BRANCH && 'with express module branch $EXPRESS_BRANCH' || '' }} "
